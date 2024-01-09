@@ -456,16 +456,9 @@ void TryStartQuestLogPlayback(u8 taskId)
             sNumScenes++;
     }
 
-    if (sNumScenes != 0)
-    {
-        Task_BeginQuestLogPlayback(taskId);
-        DestroyTask(taskId);
-    }
-    else
-    {
-        SetMainCallback2(CB2_ContinueSavedGame);
-        DestroyTask(taskId);
-    }
+
+    SetMainCallback2(CB2_ContinueSavedGame);
+    DestroyTask(taskId);
 }
 
 static void Task_BeginQuestLogPlayback(u8 taskId)
