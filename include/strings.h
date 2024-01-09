@@ -504,6 +504,7 @@ extern const u8 gText_SaveFileCorrupted[];
 extern const u8 gText_SaveFileHasBeenDeleted[];
 extern const u8 gText_1MSubCircuitBoardNotInstalled[];
 extern const u8 gText_NewGame[];
+extern const u8 gText_Options[];
 extern const u8 gText_Continue[];
 extern const u8 gText_MysteryGift[];
 extern const u8 gText_WirelessNotConnected[];

@@ -7,6 +7,7 @@
 #include "menu.h"
 #include "link.h"
 #include "oak_speech.h"
+#include "option_menu.h"
 #include "overworld.h"
 #include "quest_log.h"
 #include "mystery_gift_menu.h"
@@ -21,12 +22,14 @@ enum MainMenuType
 {
     MAIN_MENU_NEWGAME = 0,
     MAIN_MENU_CONTINUE,
-    MAIN_MENU_MYSTERYGIFT
+    MAIN_MENU_MYSTERYGIFT,
+    MAIN_MENU_OPTION,
 };
 
 enum MainMenuWindow
 {
     MAIN_MENU_WINDOW_NEWGAME_ONLY = 0,
+    MAIN_MENU_WINDOW_NEWGAME_ONLY_OPTIONS,
     MAIN_MENU_WINDOW_CONTINUE,
     MAIN_MENU_WINDOW_NEWGAME,
     MAIN_MENU_WINDOW_MYSTERYGIFT,
@@ -80,6 +83,15 @@ static const struct WindowTemplate sWindowTemplate[] = {
         .paletteNum = 15,
         .baseBlock = 0x001
     }, 
+    [MAIN_MENU_WINDOW_NEWGAME_ONLY_OPTIONS] = {
+        .bg = 0,
+        .tilemapLeft = 3,
+        .tilemapTop = 5,
+        .width = 24,
+        .height = 2,
+        .paletteNum = 15,
+        .baseBlock = 0x031,
+    },
     [MAIN_MENU_WINDOW_CONTINUE] = {
         .bg = 0,
         .tilemapLeft = 3,
@@ -135,7 +147,7 @@ static const struct BgTemplate sBgTemplate[] = {
     }
 };
 
-static const u8 sMenuCursorYMax[] = { 0, 1, 2 };
+static const u8 sMenuCursorYMax[] = { 2, 1, 2 };
 
 static void CB2_MainMenu(void)
 {
@@ -313,10 +325,7 @@ static void Task_SetWin0BldRegsNoSaveFileCheck(u8 taskId)
         SetGpuReg(REG_OFFSET_BLDCNT, BLDCNT_TGT1_BG0 | BLDCNT_TGT1_BG1 | BLDCNT_TGT1_BG2 | BLDCNT_TGT1_BG3 | BLDCNT_TGT1_OBJ | BLDCNT_TGT1_BD | BLDCNT_EFFECT_DARKEN);
         SetGpuReg(REG_OFFSET_BLDALPHA, BLDALPHA_BLEND(0, 0));
         SetGpuReg(REG_OFFSET_BLDY, 7);
-        if (gTasks[taskId].tMenuType == MAIN_MENU_NEWGAME)
-            gTasks[taskId].func = Task_ExecuteMainMenuSelection;
-        else
-            gTasks[taskId].func = Task_WaitFadeAndPrintMainMenuText;
+        gTasks[taskId].func = Task_WaitFadeAndPrintMainMenuText;
     }
 }
 
@@ -348,10 +357,15 @@ static void Task_PrintMainMenuText(u8 taskId)
     case MAIN_MENU_NEWGAME:
     default:
         FillWindowPixelBuffer(MAIN_MENU_WINDOW_NEWGAME_ONLY, PIXEL_FILL(10));
+        FillWindowPixelBuffer(MAIN_MENU_WINDOW_NEWGAME_ONLY_OPTIONS, PIXEL_FILL(10));
         AddTextPrinterParameterized3(MAIN_MENU_WINDOW_NEWGAME_ONLY, FONT_NORMAL, 2, 2, sTextColor1, -1, gText_NewGame);
+        AddTextPrinterParameterized3(MAIN_MENU_WINDOW_NEWGAME_ONLY_OPTIONS, FONT_NORMAL, 2, 2, sTextColor1, -1, gText_Options);
         MainMenu_DrawWindow(&sWindowTemplate[MAIN_MENU_WINDOW_NEWGAME_ONLY]);
+        MainMenu_DrawWindow(&sWindowTemplate[MAIN_MENU_WINDOW_NEWGAME_ONLY_OPTIONS]);
         PutWindowTilemap(MAIN_MENU_WINDOW_NEWGAME_ONLY);
-        CopyWindowToVram(MAIN_MENU_WINDOW_NEWGAME_ONLY, COPYWIN_FULL);
+        PutWindowTilemap(MAIN_MENU_WINDOW_NEWGAME_ONLY_OPTIONS);
+        CopyWindowToVram(MAIN_MENU_WINDOW_NEWGAME_ONLY, COPYWIN_GFX);
+        CopyWindowToVram(MAIN_MENU_WINDOW_NEWGAME_ONLY_OPTIONS, COPYWIN_FULL);
         break;
     case MAIN_MENU_CONTINUE:
         FillWindowPixelBuffer(MAIN_MENU_WINDOW_CONTINUE, PIXEL_FILL(10));
@@ -423,7 +437,16 @@ static void Task_ExecuteMainMenuSelection(u8 taskId)
         {
         default:
         case MAIN_MENU_NEWGAME:
-            menuAction = MAIN_MENU_NEWGAME;
+            switch (gTasks[taskId].tCursorPos)
+            {
+            default:
+            case 0:
+                menuAction = MAIN_MENU_NEWGAME;
+                break;
+            case 1:
+                menuAction = MAIN_MENU_OPTION;
+                break;
+            }
             break;
         case MAIN_MENU_CONTINUE:
             switch (gTasks[taskId].tCursorPos)
@@ -484,6 +507,12 @@ static void Task_ExecuteMainMenuSelection(u8 taskId)
             FreeAllWindowBuffers();
             DestroyTask(taskId);
             break;
+        case MAIN_MENU_OPTION:
+            gMain.savedCallback = CB2_InitMainMenu;
+            SetMainCallback2(CB2_OptionsMenuFromStartMenu);
+            FreeAllWindowBuffers();
+            DestroyTask(taskId);
+            break;
         }
     }
 }
@@ -537,8 +566,18 @@ static void MoveWindowByMenuTypeAndCursorPos(u8 menuType, u8 cursorPos)
     {
     default:
     case MAIN_MENU_NEWGAME:
-        win0vTop = 0x00 << 8;
-        win0vBot = 0x20;
+        switch (cursorPos)
+        {
+        default:
+        case 0: // NEW GAME
+            win0vTop = 0x00 << 8;
+            win0vBot = 0x20;
+            break;
+        case 1: // OPTION
+            win0vTop = 0x20 << 8;
+            win0vBot = 0x40;
+            break;
+        }
         break;
     case MAIN_MENU_CONTINUE:
     case MAIN_MENU_MYSTERYGIFT:
