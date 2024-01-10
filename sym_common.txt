@@ -28,8 +28,6 @@
 	.include "battle_anim_special.o"
 	.include "save_failed_screen.o"
 	.align 4
-	.include "link_rfu_2.o"
-	.align 4
 	.include "AgbRfu_LinkManager.o"
 	.align 4
 	.include "list_menu.o"
